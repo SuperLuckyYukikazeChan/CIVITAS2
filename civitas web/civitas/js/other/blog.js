@@ -31,7 +31,7 @@ Vue.component("blog-display", {
             })
             .then(function (response) {
                 var json_str_data = response.data.data;
-                vm.total = json_str_data.total;
+                vm.total = json_str_data.total_blog;
                 document.title = "开发日志" + vm.id + json_str_data.title + " - 古典社会模拟 CIVITAS2";
                 vm.title = json_str_data.title;
                 vm.author = json_str_data.author;

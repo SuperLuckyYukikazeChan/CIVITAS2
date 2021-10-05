@@ -38,10 +38,8 @@ urlpatterns = [
     
 
     path('admin/', admin.site.urls),
-    path('getweather/',civitas.getweather1),
-    path('getdate/',civitas.getdate1),
   
-    #演讲部分
+    # 演讲部分
     path('getspeech/', speech.getspeech1),#获得演讲内容
     path('speech/', speech.speech1),#发演讲
     path('assess/',speech.assess1),#发表态度
@@ -50,37 +48,41 @@ urlpatterns = [
     path('getweather/',civitas.getweather1),#天气
     path('getdate/',civitas.getdate1),#游戏日历
 
-    #注册，登录，注销相关部分
+    # 注册，登录，注销相关部分
     path('islogin/',user.islogin1),
     path('login/',user.login1),
     path('register/',user.register1),
     path('logout/',user.logout1),
 
-    #头像部分
+    # 头像部分
     path('upload-avatar/',user.upload_avatar),#上传头像
     path('getavatar/',user.get_avatar),#获得头像
 
+    # 用户
     path('getskill/',skill.getUserSkill),#获得技能
     path('getstatus/',user.siwei),#四维
     path('getuserdetail/',user.get_userdetail),#用户信息
     path('getmaterial/',material.material_depository),#查看玩家物资
     path('dosideline/',work.get_sideline),#副业，教育
+
     path('getblog/',blog.get_blog),
 
-    #社交部分
+    # 社交部分
     path('socialbehavior/',social.do_social_behavior),
     path('addfriend/',social.add_friend),
     path('removefriend/',social.remove_friend),
-    path('isfriend/',social.is_friend),
+    path('isfriend/',social.is_friend_api),
     path('getsocial/',social.get_social),
+    path('getfriend/',social.get_all_friend_api),
    
     # 城市
     path('city_info/', city.get_city_info),
+
     # 不动产
     path('building_list/', city.building_list),
     path('reclaim/', city.reclaim),
 
-    #食谱
+    # 食谱
     path('get_user_diet/',diet.GetUserRecipes),#获得玩家食谱
     path('get_user_send_id_diet/',diet.Get_id_Recipes)#获得玩家自己的指定id食谱
 ]

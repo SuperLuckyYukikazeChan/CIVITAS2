@@ -1,17 +1,4 @@
-/*
-个人主页Vue组件
-
-组件1
-名称:people-detail
-用途:个人主页中显示个人详细信息
-props:{
-    prop:{
-        uid:对应用户的uid
-        username:对应用户的用户名
-    },
-}
-*/
-
+//个人详情组件
 Vue.component("people-detail", {
     props: ["prop","uid"],
     data: function () {
@@ -40,11 +27,11 @@ Vue.component("people-detail", {
                 url: "https://api.trickydeath.xyz/isfriend/",
                 withCredentials: true,
                 params: {
-                    target_uid: this.prop.uid,
+                    uid: this.prop.uid,
                 },
             })
             .then(function (response) {
-                var datas = response.data.data;
+                var datas = response.data;
                 if (datas.message == "你们是好友") {
                     vm.friend = true;
                     vm.friend_level = "点头之交";
@@ -60,7 +47,7 @@ Vue.component("people-detail", {
         add_friend: function () {
             var vm = this;
             var post_data = new URLSearchParams();
-            post_data.append("target_uid",this.prop.uid);
+            post_data.append("uid",this.prop.uid);
             axios({
                 method: "post",
                 url: "https://api.trickydeath.xyz/addfriend/",
@@ -68,7 +55,7 @@ Vue.component("people-detail", {
                 data: post_data
             })
             .then(function (response) {
-                var datas = response.data.data;
+                var datas = response.data;
                 if (datas.message == "添加好友成功") {
                     vm.is_friend();
                 }
@@ -94,6 +81,7 @@ Vue.component("people-detail", {
     `
 })
 
+//社交记录组件
 Vue.component("people-social", {
     props: ["prop","uid","type"],
     data: function () {
@@ -154,11 +142,11 @@ Vue.component("people-social", {
                 url: "https://api.trickydeath.xyz/isfriend/",
                 withCredentials: true,
                 params: {
-                    target_uid: this.prop.uid,
+                    uid: this.prop.uid,
                 },
             })
             .then(function (response) {
-                var datas = response.data.data;
+                var datas = response.data;
                 if (datas.message == "你们是好友") {
                     vm.friend = true;
                 }
@@ -174,8 +162,8 @@ Vue.component("people-social", {
             var vm = this;
             var post_data = new URLSearchParams();
             post_data.append("type",type);
-            post_data.append("target_uid",this.prop.uid);
-            post_data.append("message",message);
+            post_data.append("uid",this.prop.uid);
+            post_data.append("message","");
             axios({
                 method: "post",
                 url: "https://api.trickydeath.xyz/socialbehavior/",
@@ -184,6 +172,7 @@ Vue.component("people-social", {
             })
             .then(function (response) {
                 vm.get_social();
+                main_vm.get_status();
             })
             .catch(function (error) {
                 console.log(error);
@@ -195,8 +184,12 @@ Vue.component("people-social", {
         <p class="main-char">{{ prop.username }}的社交关系</p>
         <div class="social-methods bottomline-dashed" v-if="type == 'people'">
             <p class="explain" v-if="prop.uid == uid">你不能对自己进行社交。</p>
-            <p class="explain" v-else-if="friend == false">你还不是{{ prop.username }}的好友，但你可以<a href="javascript:void(0)">公开谴责</a>。</p>
+            <p class="explain" v-else-if="friend == false">
+                你还不是{{ prop.username }}的好友，但你可以
+                <a href="javascript:void(0)" v-on:click="do_social_behavior(1)">公开谴责</a>。
+            </p>
             <p class="explain" v-else-if="friend == true">
+                你和{{ prop.username }}是好友。<br>
                 <a href="javascript:void(0)" v-on:click="do_social_behavior(0)">公开赞扬</a>
                 <a href="javascript:void(0)" v-on:click="do_social_behavior(1)">公开谴责</a>
                 <a href="javascript:void(0)" v-on:click="do_social_behavior(2)">私下表扬</a>
@@ -225,6 +218,58 @@ Vue.component("people-social", {
                 <a v-bind:href="'social.html?uid='+prop.uid">>>查看更多社交记录</a>
             </div>
         </div>
+    </div>
+    `
+})
+
+//好友显示组件
+Vue.component("people-friend", {
+    props: ["prop"],
+    data: function () {
+        return {
+            friends: [],
+            length: 0,
+            page: 1,
+        }
+    },
+    created: function () {
+        this.get_friend();
+    },
+    methods: {
+        get_friend: function () {
+            var vm = this;
+            axios({
+                method: "get",
+                url: "https://api.trickydeath.xyz/getfriend/",
+                withCredentials: true,
+                params: {
+                    page: this.page
+                },
+            })
+            .then(function (response) {
+                var datas = response.data.data;
+                vm.friends = datas.datalist;
+            })
+            .catch(function (error) {
+                console.log(error);
+            })
+        }
+    },
+    template:`
+    <div class="social-total">
+        <p class="main-char">我的人际关系</p>
+        <p class="explain" v-if="socials.length == 0">你还没有好友。</p>
+        <template v-else>
+            <div class="social-single bottomline-dashed" v-for="(social,index) in friends" v-bind:key="index">
+                <a v-bind:href="'people.html?uid='+friends.friend_uid">
+                    <img v-bind:src="'https://api.trickydeath.xyz/getavatar/?uid='+friends.friend_uid" class="img-thumbnail" width="50px" height="50px">
+                </a>
+                <p>
+                    <a v-bind:href="'people.html?uid='+friends.friend_uid">{{ friends.friend_username }}</a><br>
+                    第{{ friends.day }}天，{{ friends.time }}。
+                </p>
+            </div>
+        </template>
     </div>
     `
 })
