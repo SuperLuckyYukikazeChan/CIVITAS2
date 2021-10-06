@@ -150,7 +150,7 @@ def add_friend(req):
             return make_return("没有提供POST参数")
         #检查是否为好友
         is_friend = Friend.objects.is_friend(user,target_user)
-        #如果其中一个找到，则是好友，不能再添加了
+        #如果是好友，则不能再添加了
         if is_friend:
             return make_return("你们已经是好友了")
         #存储社交
@@ -174,7 +174,6 @@ def remove_friend(req):
         }
         return HttpResponse(json.dumps(result), content_type="application/json")
     status = 0
-    meg = "失败"
     data = {}
     sessionid=req.COOKIES.get("sessionid")
     if is_login(req,sessionid):
@@ -286,7 +285,7 @@ def get_all_friend_api(req):
             target_user = auth.models.User.objects.get(pk=target_uid)
         except:
             return make_return("对应uid的目标用户不存在")
-        #检查好友
+        #获取所有好友
         is_friend = Friend.objects.filter(Q(from_person = target_user) | Q(to_person = target_user))
         #分页
         count = is_friend.count()
@@ -304,13 +303,20 @@ def get_all_friend_api(req):
         page = req.GET.get("page")
         if not page:
             page = 1
-        page = is_int(page)
-        if page == "error":
-            return make_return("存在需要传入数字的参数传入的不是数字")
-        if page > total_page or page <= 0:
-            return make_return("不合法的页码参数")
+        #主页使用的参数
+        if page == "index":
+            pass
+        else:
+            page = is_int(page)
+            if page == "error":
+                return make_return("存在需要传入数字的参数传入的不是数字")
+            if page > total_page or page <= 0:
+                return make_return("不合法的页码参数")
         #切片出对应页码的Queryset
-        list1 = is_friend.order_by('-relationship_value', "-id")[0 + num_every_page * (page - 1) : num_every_page * page]
+        if page == "index":
+            list1 = is_friend.order_by('-relationship_value', "-id")[:16]
+        else:
+            list1 = is_friend.order_by('-relationship_value', "-id")[0 + num_every_page * (page - 1) : num_every_page * page]
         rtl = []
         for var in list1:
             from_person_username = var.from_person.username

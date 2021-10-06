@@ -258,15 +258,15 @@ Vue.component("people-friend", {
     template:`
     <div class="social-total">
         <p class="main-char">我的人际关系</p>
-        <p class="explain" v-if="socials.length == 0">你还没有好友。</p>
+        <p class="explain" v-if="friends.length == 0">你还没有好友。</p>
         <template v-else>
-            <div class="social-single bottomline-dashed" v-for="(social,index) in friends" v-bind:key="index">
-                <a v-bind:href="'people.html?uid='+friends.friend_uid">
-                    <img v-bind:src="'https://api.trickydeath.xyz/getavatar/?uid='+friends.friend_uid" class="img-thumbnail" width="50px" height="50px">
+            <div class="social-single bottomline-dashed" v-for="(friend,index) in friends" v-bind:key="index">
+                <a v-bind:href="'people.html?uid='+friend.friend_uid">
+                    <img v-bind:src="'https://api.trickydeath.xyz/getavatar/?uid='+friend.friend_uid" class="img-thumbnail" width="50px" height="50px">
                 </a>
                 <p>
-                    <a v-bind:href="'people.html?uid='+friends.friend_uid">{{ friends.friend_username }}</a><br>
-                    第{{ friends.day }}天，{{ friends.time }}。
+                    <a v-bind:href="'people.html?uid='+friends.friend_uid">{{ friend.friend_username }}</a><br>
+                    第{{ friend.day }}天，{{ friend.time }}。
                 </p>
             </div>
         </template>

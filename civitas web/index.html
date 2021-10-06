@@ -55,7 +55,7 @@
                 </div>
                 <div class="relationship blocks-div1">
                     <div class="relationship-img">
-                        <a v-for="a in b" v-bind:href="'people.html?uid='+a"><img v-bind:src="'https://api.trickydeath.xyz/getavatar/?uid='+a"/></a>
+                        <a v-for="friend in friends" v-bind:href="'people.html?uid='+friend.friend_uid"><img v-bind:src="'https://api.trickydeath.xyz/getavatar/?uid='+friend.friend_uid"/></a>
                     </div>
                     <p>我的人际关系</p>
                 </div>

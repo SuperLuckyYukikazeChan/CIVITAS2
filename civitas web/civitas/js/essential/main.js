@@ -214,11 +214,11 @@ function load_main_vm(status,uid) {
         el: "#main",
         data: {
             navigator_width: 0,
-            b: [1,5,6,7,8,9,10,11,12,15,17,18,80,20,21,22],
             uid: uid,
             someone_uid: undefined,
             someone_detail: {},
             speech_input: "",
+            friends: [],
             ranevent_prop: {
                 title:"",
                 statement:"",
@@ -306,6 +306,8 @@ function load_main_vm(status,uid) {
             if (this.status == 1) {
                 this.get_status();
             }
+            //获取好友
+            this.get_friend();
         },
         methods: {
             height_change: function (height) {
@@ -383,6 +385,25 @@ function load_main_vm(status,uid) {
                         vm.$set(vm.user_prop,"status",status_today);
                         vm.$set(vm.user_prop,"status_change",status_change);
                     }
+                })
+                .catch(function (error) {
+                    console.log(error);
+                })
+            },
+            //获取好友
+            get_friend_index: function () {
+                var vm = this;
+                axios({
+                    method: "get",
+                    url: "https://api.trickydeath.xyz/getfriend/",
+                    withCredentials: true,
+                    params: {
+                        page: "index"
+                    },
+                })
+                .then(function (response) {
+                    var datas = response.data.data;
+                    vm.friends = datas.datalist;
                 })
                 .catch(function (error) {
                     console.log(error);
