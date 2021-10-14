@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import weather
+from .models import *
 # Register your models here.
 
-admin.site.register(weather)
+admin.site.register(Calendar)

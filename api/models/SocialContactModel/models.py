@@ -10,6 +10,10 @@ class Friend(models.Model):
     def __str__(self):
         return str(self.relationship_value)
 
+    def relationship_value_change(self, change):
+        self.relationship_value += change
+        self.save()
+
 class Social_behavior(models.Model):
     from_person = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,verbose_name='发起者',related_name='social_behavior_from_person')
     to_person = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,verbose_name='接收者',related_name='social_behavior_to_person')

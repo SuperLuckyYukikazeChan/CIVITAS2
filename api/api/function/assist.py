@@ -17,7 +17,6 @@ def is_login(req,sessionid):
         return 0
     return 1
 
-
 #增加技能
 #参数说明
 #skill_now：当前技能

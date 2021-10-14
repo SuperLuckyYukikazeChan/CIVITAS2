@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import usersession,Avatar,personal_attributes
+from .models import *
 # Register your models here.
 class attributes(admin.ModelAdmin):
     list_display = ('uid','energy','healthy','happy','Hunger')

@@ -3,7 +3,7 @@ from SocialContactModel.models import *
 from UserModel.models import personal_attributes
 from SkillModel.models import *
 from django.contrib.sessions.models import Session
-from django.contrib import auth
+from django.contrib.auth.models import User
 from django.db.models import Q
 from assist import *
 import datetime
@@ -32,7 +32,7 @@ def do_social_behavior(req):
     if is_login(req,sessionid):
         session = Session.objects.filter(pk=sessionid).first()
         uid = session.get_decoded()["_auth_user_id"]
-        user = auth.models.User.objects.get(pk=uid)
+        user = User.objects.get(pk=uid)
         #社交类型
         type_social = is_int(req.POST.get("type"))
         if type_social == "error":
@@ -48,7 +48,7 @@ def do_social_behavior(req):
             return make_return("你不能对自己进行社交")
         #社交目标玩家对象
         try:
-            target_user = auth.models.User.objects.get(pk=target_uid)
+            target_user = User.objects.get(pk=target_uid)
         except:
             return make_return("对应uid的目标用户不存在")
         #留言检查
@@ -139,7 +139,7 @@ def add_friend(req):
     if is_login(req,sessionid):
         session = Session.objects.filter(pk=sessionid).first()
         uid = session.get_decoded()["_auth_user_id"]
-        user = auth.models.User.objects.get(pk=uid)
+        user = User.objects.get(pk=uid)
         #加好友目标玩家uid
         target_uid = is_int(req.POST.get("target_uid"))
         if target_uid == "error":
@@ -148,7 +148,7 @@ def add_friend(req):
             return make_return("你不能加自己为好友")
         #社交目标玩家对象
         try:
-            target_user = auth.models.User.objects.get(pk=target_uid)
+            target_user = User.objects.get(pk=target_uid)
         except:
             return make_return("对应uid的目标用户不存在")
         #检查是否有post参数
@@ -187,7 +187,7 @@ def remove_friend(req):
     if is_login(req,sessionid):
         session = Session.objects.filter(pk=sessionid).first()
         uid = session.get_decoded()["_auth_user_id"]
-        user = auth.models.User.objects.get(pk=uid)
+        user = User.objects.get(pk=uid)
         #删好友目标玩家uid
         target_uid = is_int(req.POST.get("target_uid"))
         if target_uid == "error":
@@ -196,7 +196,7 @@ def remove_friend(req):
             return make_return("你不能删除自己的好友")
         #社交目标玩家对象
         try:
-            target_user = auth.models.User.objects.get(pk=target_uid)
+            target_user = User.objects.get(pk=target_uid)
         except:
             return make_return("对应uid的目标用户不存在")
         #检查是否有post参数
@@ -238,7 +238,7 @@ def is_friend(req):
     if is_login(req,sessionid):
         session = Session.objects.filter(pk=sessionid).first()
         uid = session.get_decoded()["_auth_user_id"]
-        user = auth.models.User.objects.get(pk=uid)
+        user = User.objects.get(pk=uid)
         #目标玩家uid
         target_uid = is_int(req.GET.get("target_uid"))
         if target_uid == "error":
@@ -247,7 +247,7 @@ def is_friend(req):
             return make_return("你不是自己的好友")
         #社交目标玩家对象
         try:
-            target_user = auth.models.User.objects.get(pk=target_uid)
+            target_user = User.objects.get(pk=target_uid)
         except:
             return make_return("对应uid的目标用户不存在")
         #检查是否有参数
@@ -286,7 +286,7 @@ def get_social(req):
         session = Session.objects.filter(pk=sessionid).first()
         #自己的uid
         uid = session.get_decoded()["_auth_user_id"]
-        user = auth.models.User.objects.get(pk=uid)
+        user = User.objects.get(pk=uid)
         #目标玩家uid
         target_uid = req.GET.get("uid")
         if target_uid == None:
@@ -295,7 +295,7 @@ def get_social(req):
             return make_return("不合法的uid参数")
         #社交目标玩家对象
         try:
-            target_user = auth.models.User.objects.get(pk=target_uid)
+            target_user = User.objects.get(pk=target_uid)
         except:
             return make_return("对应uid的目标用户不存在")
         #页码page

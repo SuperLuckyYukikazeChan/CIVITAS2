@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from django.contrib.auth.models import User
 
 # Create your models here.
 class usersession(models.Model):
@@ -14,7 +15,11 @@ class personal_attributes(models.Model):
     Hunger = models.CharField(max_length=20,verbose_name='饥饿')
     def __str__(self):
         return 'uid'+self.uid+'精力'+self.energy+'健康'+self.healthy+'快乐'+self.happy+'饥饿'+self.Hunger
-
+    
+    def energy_change(self,change):
+        now_energy = eval(self.energy)
+        self.energy = str(now_energy + change)
+        self.save()
 
 def avatar_path(instance, filename):
     filename = str(instance.user.id) + '.jpg'
@@ -22,9 +27,9 @@ def avatar_path(instance, filename):
 
 class Avatar(models.Model):
     user = models.OneToOneField(
-         settings.AUTH_USER_MODEL,
-         on_delete=models.DO_NOTHING,
-         primary_key=True,
+        settings.AUTH_USER_MODEL,
+        on_delete=models.DO_NOTHING,
+        primary_key=True,
     )
     avatar = models.ImageField(
         verbose_name="头像",
