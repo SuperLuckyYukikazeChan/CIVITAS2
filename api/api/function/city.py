@@ -3,7 +3,6 @@ from django.contrib.sessions.models import Session
 from django.core import serializers
 from api.function.assist import *
 from UserModel.models import personal_attributes
-from cities.models import City, Building
 import datetime
 import json
 

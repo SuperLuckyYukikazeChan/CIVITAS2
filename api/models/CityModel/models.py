@@ -1,6 +1,7 @@
 from django.db import models
 import random
-from MaterialModel.models import Material
+from MaterialModel.models import Material,MaterialDetail
+from CivitasModel.models import Calendar
 
 class Climate(models.Model):
     class Meta:
@@ -36,6 +37,9 @@ class City(models.Model):
     #名字
     name = models.CharField("城市名",max_length=20)
 
+    #日历
+    calendar = models.ForeignKey(Calendar,on_delete=models.CASCADE,verbose_name="日历")
+
     #以下为天气参数
     average_temperature = models.FloatField("平均温度")
     temperature_difference = models.FloatField("温差，最低月平均温度与最高月平均温度之差")
@@ -63,8 +67,8 @@ class City(models.Model):
     is_flooding = models.BooleanField("是否会泛滥")
     flooding = models.BooleanField("是否正在泛滥")
     flooding_fertility_default = models.IntegerField("泛滥肥力值")
-    flooding_season_choice = ((1, "春"),(2, "夏"),(3, "秋"),(4, "冬"))
-    flooding_season = models.CharField("泛滥季节",max_length=20,choices=flooding_season_choice,default=1)
+    flooding_season_choice = (("1", "春"),("2", "夏"),("3", "秋"),("4", "冬"))
+    flooding_season = models.CharField("泛滥季节",max_length=20,choices=flooding_season_choice,default="1")
 
     #以下为农业相关数据
     irrigation_default = models.FloatField("默认灌溉值")
@@ -121,8 +125,8 @@ class City(models.Model):
 
         #####################################################################################
         #以下获取当前日期，季节
-        season = 1
-        day = 2
+        season = int(self.calendar.season)
+        day = self.calendar.day
 
         #####################################################################################
         #以下为气温变化部分
@@ -327,14 +331,13 @@ class City(models.Model):
         if self.is_flooding == False:
             pass
         else:
-            #在夏天泛滥
-            if season == self.flooding_season and day == 1:
+            if season == int(self.flooding_season) and day == 1:
                 self.fertility_default = random.uniform(self.flooding_fertility_default*0.9,self.flooding_fertility_default*1.1)
                 #不能超过100
                 if self.fertility_default > 100:
                     self.fertility_default = 100
                 self.flooding = True
-            elif season == self.flooding_season and day == 1:
+            elif season == int(self.flooding_season) + 1 and day == 1:
                 self.fertility_default = self.raw_fertility_default
                 self.flooding = False
         
@@ -349,24 +352,17 @@ class City(models.Model):
     def get_weather(self):
         pass
 
-#基准开垦难度
-class Default_Open_Difficulty(models.Model):
+#开垦难度参数
+class Open_Difficulty_Parameter(models.Model):
     class Meta:
-        verbose_name = "基准开垦难度参数"
+        verbose_name = "开垦难度参数"
         verbose_name_plural = verbose_name
-    
-    #定义基准开垦难度
-    default_plain_open_difficulty = models.IntegerField("平原基准开垦难度",default=100)
-    default_hill_open_difficulty = models.IntegerField("丘陵基准开垦难度",default=400)
-    default_mountain_open_difficulty = models.IntegerField("山地基准开垦难度",default=1000)
-    default_freshwater_open_difficulty = models.IntegerField("淡水基准开垦难度",default=200)
-    default_saltwater_open_difficulty = models.IntegerField("咸水基准开垦难度",default=200)
 
     #定义翻倍系数
     double_parameter = models.IntegerField("基准难度翻倍参数",default=200)
 
     def __str__(self):
-        return "基准开垦难度参数" + str(self.id)
+        return "开垦难度参数" + str(self.id)
 
 class Abstract_County(models.Model):
     #抽象的县模型，用于被首县，郊区，郊县继承
@@ -382,7 +378,7 @@ class Abstract_County(models.Model):
     industrial_value = models.IntegerField("产业值")
 
     #关联基准开垦难度
-    default_open_difficulty = models.ForeignKey(Default_Open_Difficulty,on_delete=models.CASCADE,verbose_name="基准开垦难度")
+    open_difficulty_parameter = models.ForeignKey(Open_Difficulty_Parameter,on_delete=models.CASCADE,verbose_name="开垦难度参数")
 
     #土地开垦难度
     plain_open_difficulty = models.FloatField("平原开垦难度",default=100)
@@ -401,6 +397,9 @@ class Abstract_County(models.Model):
     #属于某个城市
     belong_city = models.ForeignKey(City,on_delete=models.CASCADE,verbose_name="属于城市")
 
+    #建立时间
+    created_at = models.DateTimeField(auto_now=True)
+
     def __str__(self):
         return self.name
 
@@ -417,7 +416,7 @@ class County(Abstract_County):
     saltwater_open_lands_max = models.FloatField("咸水土地总量",default=100)
 
     #特产表
-    list_of_special_materials_county = models.ManyToManyField(Material,verbose_name="特产表",related_name="special_materials_county",blank=True)
+    list_of_special_materials_county = models.ManyToManyField(MaterialDetail,verbose_name="特产表",related_name="special_materials_county",blank=True)
 
     #更新开垦难度
     def updata_difficulty(self):

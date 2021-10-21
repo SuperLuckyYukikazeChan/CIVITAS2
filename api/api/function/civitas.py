@@ -1,5 +1,4 @@
 from django.shortcuts import redirect,render,HttpResponse
-from CivitasModel.models import weather
 from assist import *
 import datetime
 import json
@@ -81,15 +80,15 @@ def getdate1(req):  #获取日期
     day = days_left2 + 1
     season_dict = {1:"春天",2:"夏天",3:"秋天",4:"冬天"}
     result={
-                "status":status,
-                "message":meg,
-                "data":{
-                            "total_day":total_day,
-                            "time":time,
-                            "year":year,
-                            "season":season_dict[season],
-                            "day":day
-                        }
+        "status":status,
+        "message":meg,
+        "data":{
+            "total_day":total_day,
+            "time":time,
+            "year":year,
+            "season":season_dict[season],
+            "day":day
+        }
 
-            }
+    }
     return HttpResponse(json.dumps(result), content_type="application/json")
