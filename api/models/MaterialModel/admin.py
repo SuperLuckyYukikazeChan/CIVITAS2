@@ -17,20 +17,8 @@ class usermateriallist(admin.ModelAdmin):
     list_display = ('user','material_detail','count')
 
 class recipelist(admin.ModelAdmin):
-    list_display = ('id','所需物资','产出物资')
+    list_display = ("id","__str__")
     inlines = [ChoiceForRecipe_input,ChoiceForRecipe_output]
-    def 所需物资(self,obj):
-        input_all = Input_Recipe_Material.objects.filter(recipe_id=obj.pk)
-        list_input = []
-        for i in input_all:
-            list_input.append(str(i.count) +'个' + i.material.material.name + 'Q' + str(i.material.level))
-        return '，'.join(list_input)
-    def 产出物资(self,obj):
-        input_all = Output_Recipe_Material.objects.filter(recipe_id=obj.pk)
-        list_input = []
-        for i in input_all:
-            list_input.append(str(i.count) +'个' + i.material.material.name + 'Q' + str(i.material.level))
-        return '，'.join(list_input)
 
 class materiallist(admin.ModelAdmin):
     list_display = ('material_id','name')

@@ -3,6 +3,7 @@ from MaterialModel.models import MaterialDetail,Recipe
 from CityModel.models import *
 from CivitasModel.models import Calendar,Terrain
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 
 #不动产所需物资中间表
 class Estate_To_Material(models.Model):
@@ -59,7 +60,23 @@ class Estate_Type(models.Model):
 
     def __str__(self):
         return self.name
+    
+    def save(self):
+        #验证工作人数
+        if (self.is_raw_materials == True or self.is_machining == True) and not self.number_of_work_person:
+            raise ValidationError("原料生产建筑或加工建筑需要有工作人数")
+        #验证居住人数
+        if self.is_house == True and not self.number_of_house_person:
+            raise ValidationError("住宅需要有居住人数")
+        #验证原料
+        if self.is_raw_materials and not self.list_of_raw_materials.exists():
+            raise ValidationError("原料生产建筑需要有可生产的原料")
+        #验证加工品
+        if self.is_machining and not self.list_of_machining.exists():
+            raise ValidationError("加工建筑需要有加工配方")
+        super().save()
 
+#不动产
 class Estate(models.Model):
     class Meta:
         verbose_name = "不动产"
@@ -104,8 +121,8 @@ class Estate(models.Model):
     def open_land(self,capacity):
         #不是开垦中返回错误
         if self.status_estate != "开垦中":
-            raise IOError("不是开垦中的地产")
-        #检查建筑位于的地形，这步没有必要
+            raise ValidationError("不是开垦中的不动产")
+        #检查建筑位于县城还是郊区，这步没有必要
         self.check_countyorsuburb()
         #位于县城
         if self.is_county == True:
@@ -128,7 +145,7 @@ class Estate(models.Model):
         old_lands = self.now_lands
         #如果剩余土地不足，则返回错误
         if left_lands == 0:
-            raise IOError("土地不足")
+            raise ValidationError("土地不足")
         elif left_lands < new_lands:
             new_lands = left_lands
         self.now_lands += new_lands
@@ -143,12 +160,65 @@ class Estate(models.Model):
         middle_table.save()
         self.save()
 
-    #更改产物
-    def change_production(self,name,):
-        pass
+    #工作
+    def work_estate(self,raw_capacity):
+        #不是完成返回错误
+        if self.status_estate != "完成":
+            raise ValidationError("不动产未完成")
+        #验证是否为原料建筑/加工建筑/不是可以工作的建筑
+        if self.type_of.is_raw_materials:
+            is_raw_materials = True
+        elif self.type_of.is_machining:
+            is_raw_materials = False
+        else:
+            raise ValidationError("该不动产不可工作")
+        #原料建筑
+        if is_raw_materials == True:
+            if not self.production_materials:
+                raise ValidationError("未设置产物")
+            #这边先return，之后要返回到目标库房
+            return "产出%s%.2f" % (self.production_materials.__str__(),raw_capacity / self.production_materials.productivity)
+        #加工建筑
+        elif is_raw_materials == False:
+            if not self.production_machining:
+                raise ValidationError("未设置加工配方")
+            #这边先return，之后要返回到目标库房
+            return "还没做好"
+
+    #更改原料产物
+    def change_production_materials(self,id,level=1):
+        #验证是否为原料建筑
+        if not self.type_of.is_raw_materials:
+            raise ValidationError("不是生产原料的建筑")
+        #查找对应id的物资
+        material = Material.objects.filter(pk=id)
+        if not material.exists():
+            raise ValidationError("没有对应的物资")
+        #查找是否能够生产该物资
+        raw_materials = self.type_of.list_of_raw_materials.filter(material=material.first(),level=level)
+        if not raw_materials.exists():
+            raise ValidationError("无法生产该物资，或无法生产该等级的物资")
+        self.production_materials = raw_materials.first()
+        self.save()
+
+    #更改产出配方
+    def change_production_machining(self,id):
+        #验证是否为加工建筑
+        if not self.type_of.is_machining:
+            raise ValidationError("不是加工建筑")
+        #查找对应id的配方
+        recipe = Recipe.objects.filter(pk=id)
+        if not recipe.exists():
+            raise ValidationError("没有对应的配方")
+        #查找是否能够使用该配方
+        machining_recipe = self.type_of.list_of_machining.filter(pk=1)
+        if not machining_recipe.exists():
+            raise ValidationError("无法使用该配方")
+        self.production_machining = machining_recipe.first()
+        self.save()
 
     #检查位于郊区或位于县城
-    def check_countyorsuburb(self):
+    def check_countyorsuburb(self,is_save=False):
         if not self.location_county and self.location_suburb:
             self.is_county = False
             self.is_suburb = True
@@ -156,11 +226,15 @@ class Estate(models.Model):
             self.is_county = True
             self.is_suburb = False
         else:
-            raise IOError("不能既不在县城也不在郊区，或既在县城又在郊区")
+            raise ValidationError("不能既不在县城也不在郊区，或既在县城又在郊区")
+        if not is_save:
+            self.save()
 
     def __str__(self):
         return self.name
 
     def save(self):
-        self.check_countyorsuburb()
+        self.check_countyorsuburb(True)
+        if self.type_of.is_raw_materials and not self.production_materials:
+            self.production_materials = self.type_of.list_of_raw_materials.all()[0]
         super().save()
