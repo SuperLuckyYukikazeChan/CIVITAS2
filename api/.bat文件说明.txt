@@ -1,0 +1,4 @@
+createsuperuser——迁移数据库，创建管理员账户，一般删库后使用
+migrate——迁移数据库
+runserver——运行本地服务器
+shell——运行命令行，用于测试

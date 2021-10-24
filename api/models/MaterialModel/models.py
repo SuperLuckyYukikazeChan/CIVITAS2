@@ -1,26 +1,21 @@
 from django.db import models
 from django.db.models.fields import CharField, FloatField, IntegerField, SmallIntegerField
 from django.db.models import JSONField
-from django.db.models.fields.related import ForeignKey, ManyToManyField
+from django.db import models
 from django.conf import settings
-from django.db.models.fields.related_descriptors import ManyToManyDescriptor
-
 from SkillModel.admin import smalllist
 
-# Create your models here.
 class Material(models.Model):
-    material_id = IntegerField(verbose_name='物资id',unique=True)
-    name = CharField(max_length=20,verbose_name='物资名',unique=True)
+    material_id = models.IntegerField(verbose_name='物资id',unique=True)
+    name = models.CharField(max_length=20,verbose_name='物资名',unique=True)
 
     def __str__(self):
         return self.name
 
-
-
 class UserMaterial(models.Model):
-    user = ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,verbose_name='用户')
-    material_detail = ForeignKey('MaterialDetail',on_delete=models.CASCADE,verbose_name='物资详情')
-    count = FloatField(verbose_name='拥有数量')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,verbose_name='用户')
+    material_detail = models.ForeignKey('MaterialDetail',on_delete=models.CASCADE,verbose_name='物资详情')
+    count = models.FloatField(verbose_name='拥有数量')
 
     class Meta:
         unique_together = [
@@ -32,9 +27,9 @@ class UserMaterial(models.Model):
 
 class MaterialDetail(models.Model):
     level_choices = ((1, 'Q1'), (2, 'Q2'),(3, 'Q3'))
-    material = ForeignKey('Material',on_delete=models.CASCADE,verbose_name='物资')
-    productivity = FloatField(verbose_name='物资自身产能')
-    level = SmallIntegerField(verbose_name='物资等级',default=1,choices=level_choices)
+    material = models.ForeignKey('Material',on_delete=models.CASCADE,verbose_name='物资')
+    productivity = models.FloatField(verbose_name='物资自身产能')
+    level = models.SmallIntegerField(verbose_name='物资等级',default=1,choices=level_choices)
 
     class Meta:
         unique_together = [
@@ -45,24 +40,24 @@ class MaterialDetail(models.Model):
         return self.material.name+' Q.'+str(self.level)
 
 class Input_Recipe_Material(models.Model):
-    recipe = ForeignKey('Recipe',on_delete=models.CASCADE,verbose_name='配方')
-    material = ForeignKey('MaterialDetail',on_delete=models.CASCADE,verbose_name='输入物资')
-    count = IntegerField(verbose_name='数量')
+    recipe = models.ForeignKey('Recipe',on_delete=models.CASCADE,verbose_name='配方')
+    material = models.ForeignKey('MaterialDetail',on_delete=models.CASCADE,verbose_name='输入物资')
+    count = models.IntegerField(verbose_name='数量')
 
     class Meta:
         verbose_name_plural = '所需物资表'
 
 class Output_Recipe_Material(models.Model):
-    recipe = ForeignKey('Recipe',on_delete=models.CASCADE,verbose_name='配方')
-    material = ForeignKey('MaterialDetail',on_delete=models.CASCADE,verbose_name='物资')
-    count = IntegerField(verbose_name='数量')
+    recipe = models.ForeignKey('Recipe',on_delete=models.CASCADE,verbose_name='配方')
+    material = models.ForeignKey('MaterialDetail',on_delete=models.CASCADE,verbose_name='物资')
+    count = models.IntegerField(verbose_name='数量')
 
     class Meta:
         verbose_name_plural = '产出物资表'
 
 class Recipe(models.Model):
-    input = ManyToManyField('MaterialDetail',related_name='input',verbose_name='输入',through=Input_Recipe_Material)
-    output = ManyToManyField('MaterialDetail',related_name='output',verbose_name='输出',through=Output_Recipe_Material)
+    input = models.ManyToManyField('MaterialDetail',related_name='input',verbose_name='输入',through=Input_Recipe_Material)
+    output = models.ManyToManyField('MaterialDetail',related_name='output',verbose_name='输出',through=Output_Recipe_Material)
 
 # class Recipe(models.Model):
 #     #     DATA_SCHEMA =     {

@@ -1,7 +1,7 @@
 from django.db import models
 import random
 from MaterialModel.models import Material,MaterialDetail
-from CivitasModel.models import Calendar
+from CivitasModel.models import Calendar,Terrain
 
 class Climate(models.Model):
     class Meta:
@@ -57,7 +57,7 @@ class City(models.Model):
     weather = models.CharField("当前天气",max_length=20,choices=weather_choice,default="晴")
     temperature = models.FloatField("当前气温")
     precipitation = models.FloatField("当前降水量")
-    flooding = models.BooleanField("是否正在下雨")
+    is_rain = models.BooleanField("是否正在下雨",editable=False)
 
     #以下为农业相关参数
     min_irrigation_default = models.IntegerField("最小灌溉值")
@@ -65,18 +65,18 @@ class City(models.Model):
     max_irrigation_default = models.IntegerField("最大灌溉值")
     raw_fertility_default = models.IntegerField("默认肥力值")
     is_flooding = models.BooleanField("是否会泛滥")
-    flooding = models.BooleanField("是否正在泛滥")
-    flooding_fertility_default = models.IntegerField("泛滥肥力值")
+    flooding = models.BooleanField("是否正在泛滥",editable=False,default=False)
+    flooding_fertility_default = models.IntegerField("泛滥肥力值",blank=True,null=True)
     flooding_season_choice = (("1", "春"),("2", "夏"),("3", "秋"),("4", "冬"))
-    flooding_season = models.CharField("泛滥季节",max_length=20,choices=flooding_season_choice,default="1")
+    flooding_season = models.CharField("泛滥季节",max_length=20,choices=flooding_season_choice,blank=True,null=True)
 
     #以下为农业相关数据
-    irrigation_default = models.FloatField("默认灌溉值")
-    fertility_default = models.FloatField("默认肥力值")
+    irrigation_default = models.FloatField("当前默认灌溉值")
+    fertility_default = models.FloatField("当前默认肥力值")
 
     #以下为特产相关
     list_of_producible_materials = models.ManyToManyField(Material,verbose_name="可产物品表",related_name="producible_materials")
-    list_of_special_materials = models.ManyToManyField(Material,verbose_name="特产表",related_name="special_materials")
+    list_of_special_materials = models.ManyToManyField(Material,verbose_name="特产表",related_name="special_materials",blank=True)
 
     #建立时间
     created_at = models.DateTimeField(auto_now=True)
@@ -352,6 +352,14 @@ class City(models.Model):
     def get_weather(self):
         pass
 
+    #保存方法重写，加入验证
+    def save(self):
+        if self.precipitation == 0:
+            self.is_rain = False
+        else:
+            self.is_rain = True
+        super().save(self)
+
 #开垦难度参数
 class Open_Difficulty_Parameter(models.Model):
     class Meta:
@@ -364,8 +372,53 @@ class Open_Difficulty_Parameter(models.Model):
     def __str__(self):
         return "开垦难度参数" + str(self.id)
 
+#抽象的县/郊区-地形中间表
+class CorS_To_Terrain(models.Model):
+    class Meta:
+        abstract = True
+
+#县-地形中间表
+class County_To_Terrain(models.Model):
+    class Meta:
+        verbose_name = "县-地形中间表"
+        verbose_name_plural = verbose_name
+
+    county = models.ForeignKey("County",on_delete=models.CASCADE,verbose_name="关联县")
+    terrain = models.ForeignKey(Terrain,on_delete=models.CASCADE,verbose_name="地形")
+    count = models.FloatField("%s已开垦土地数量" % terrain.name)
+    open_lands_max = models.FloatField("%s土地总量" % terrain.name)
+
+    #检查土地是否溢出
+    def check_lands(self):
+        if self.count <= self.open_lands_max:
+            return self.open_lands_max - self.count
+        else:
+            return 0
+    
+    def __str__(self):
+        return self.county.name + "的" + self.terrain.name
+
+#郊区-地形中间表
+class Suburb_To_Terrain(models.Model):
+    class Meta:
+        verbose_name = "郊区-地形中间表"
+        verbose_name_plural = verbose_name
+
+    county = models.ForeignKey("Suburb",on_delete=models.CASCADE,verbose_name="关联郊区")
+    terrain = models.ForeignKey(Terrain,on_delete=models.CASCADE,verbose_name="地形")
+    count = models.FloatField("%s已开垦土地数量" % terrain.name)
+    land_parameter = models.IntegerField("%s土地参数，如为-1则代表该郊区没有该类型土地，参数均除以100后使用（方便两位小数），\
+        100参数代表每开垦1个基准难度翻倍参数时开垦难度翻倍，200参数代表每开垦1/2个基准难度翻倍参数时开垦难度翻倍（翻倍更快，开垦更难），下同" % terrain.name,default=-1)
+
+    #获取开垦难度
+    def get_difficulty(self):
+        return self.count / (self.county.open_difficulty_parameter.double_parameter / (self.land_parameter / 100)) * self.terrain.default_open_difficulty
+
+    def __str__(self):
+        return self.county.name + "的" + self.terrain.name
+        
+#抽象的县模型，用于被首县，郊区，郊县继承
 class Abstract_County(models.Model):
-    #抽象的县模型，用于被首县，郊区，郊县继承
     class Meta:
         abstract = True
 
@@ -377,22 +430,8 @@ class Abstract_County(models.Model):
     governance_value = models.IntegerField("治理值")
     industrial_value = models.IntegerField("产业值")
 
-    #关联基准开垦难度
+    #关联基准开垦难度参数
     open_difficulty_parameter = models.ForeignKey(Open_Difficulty_Parameter,on_delete=models.CASCADE,verbose_name="开垦难度参数")
-
-    #土地开垦难度
-    plain_open_difficulty = models.FloatField("平原开垦难度",default=100)
-    hill_open_difficulty = models.FloatField("丘陵开垦难度",default=400)
-    mountain_open_difficulty = models.FloatField("山地开垦难度",default=1000)
-    freshwater_open_difficulty = models.FloatField("淡水开垦难度",default=200)
-    saltwater_open_difficulty = models.FloatField("咸水开垦难度",default=200)
-
-    #已开垦土地数量
-    plain_open_lands = models.FloatField("平原已开垦土地数量",default=0)
-    hill_open_lands = models.FloatField("丘陵已开垦土地数量",default=0)
-    mountain_open_lands = models.FloatField("山地已开垦土地数量",default=0)
-    freshwater_open_lands = models.FloatField("淡水已开垦土地数量",default=0)
-    saltwater_open_lands = models.FloatField("咸水已开垦土地数量",default=0)
 
     #属于某个城市
     belong_city = models.ForeignKey(City,on_delete=models.CASCADE,verbose_name="属于城市")
@@ -403,87 +442,36 @@ class Abstract_County(models.Model):
     def __str__(self):
         return self.name
 
+#县城
 class County(Abstract_County):
     class Meta:
         verbose_name = "县"
         verbose_name_plural = verbose_name
 
-    #土地上限
-    plain_open_lands_max = models.FloatField("平原土地总量",default=100)
-    hill_open_lands_max = models.FloatField("丘陵土地总量",default=100)
-    mountain_open_lands_max = models.FloatField("山地土地总量",default=100)
-    freshwater_open_lands_max = models.FloatField("淡水土地总量",default=100)
-    saltwater_open_lands_max = models.FloatField("咸水土地总量",default=100)
+    #地形参数
+    terrain_parameter = models.ManyToManyField(Terrain,verbose_name="地形表",through=County_To_Terrain)
 
     #特产表
     list_of_special_materials_county = models.ManyToManyField(MaterialDetail,verbose_name="特产表",related_name="special_materials_county",blank=True)
 
     #更新开垦难度
     def updata_difficulty(self):
-        if self.plain_open_lands_max == 0:
-            self.plain_open_difficulty = -1
-        else:
-            self.plain_open_difficulty = self.default_open_difficulty.default_plain_open_difficulty
-        if self.hill_open_lands_max == 0:
-            self.hill_open_difficulty = -1
-        else:
-            self.hill_open_difficulty = self.default_open_difficulty.default_hill_open_difficulty
-        if self.mountain_open_lands_max == 0:
-            self.mountain_open_difficulty = -1
-        else:
-            self.mountain_open_difficulty = self.default_open_difficulty.default_mountain_open_difficulty
-        if self.freshwater_open_lands_max == 0:
-            self.freshwater_open_difficulty = -1
-        else:
-            self.freshwater_open_difficulty = self.default_open_difficulty.default_freshwater_open_difficulty
-        if self.saltwater_open_lands_max == 0:
-            self.saltwater_open_difficulty = -1
-        else:
-            self.saltwater_open_difficulty = self.default_open_difficulty.default_saltwater_open_difficulty
         self.save()
 
+#郊区
 class Suburb(Abstract_County):
     class Meta:
         verbose_name = "郊区"
         verbose_name_plural = verbose_name
 
-    #土地数量参数
-    plain_parameter = models.IntegerField("平原土地参数，如为-1则代表该郊区没有该类型土地，参数均除以100后使用（方便两位小数），\
-        100参数代表每开垦1个基准难度翻倍参数时开垦难度翻倍，200参数代表每开垦1/2个基准难度翻倍参数时开垦难度翻倍（翻倍更快，开垦更难），下同",default=-1)
-    hill_parameter = models.IntegerField("丘陵土地参数",default=-1)
-    mountain_parameter = models.IntegerField("山地土地参数",default=-1)
-    freshwater_parameter = models.IntegerField("淡水土地参数",default=-1)
-    saltwater_parameter = models.IntegerField("咸水土地参数",default=-1)
+    #地形参数
+    terrain_parameter = models.ManyToManyField(Terrain,verbose_name="地形表",through=Suburb_To_Terrain)
 
     #更新开垦难度
     def updata_difficulty(self):
-        if self.plain_parameter == -1:
-            self.plain_open_difficulty = -1
-        else:
-            self.plain_open_difficulty = self.default_open_difficulty.default_plain_open_difficulty * \
-                (1 + self.plain_open_lands / (self.default_open_difficulty.double_parameter / self.plain_parameter * 100))
-        if self.hill_parameter == -1:
-            self.hill_open_difficulty = -1
-        else:
-            self.hill_open_difficulty = self.default_open_difficulty.default_hill_open_difficulty * \
-                (1 + self.hill_open_lands / (self.default_open_difficulty.double_parameter / self.hill_parameter * 100))
-        if self.mountain_parameter == -1:
-            self.mountain_open_difficulty = -1
-        else:
-            self.mountain_open_difficulty = self.default_open_difficulty.default_mountain_open_difficulty * \
-                (1 + self.mountain_open_lands / (self.default_open_difficulty.double_parameter / self.mountain_parameter * 100))
-        if self.freshwater_parameter == -1:
-            self.freshwater_open_difficulty = -1
-        else:
-            self.freshwater_open_difficulty = self.default_open_difficulty.default_freshwater_open_difficulty * \
-                (1 + self.freshwater_open_lands / (self.default_open_difficulty.double_parameter / self.freshwater_parameter * 100))
-        if self.saltwater_parameter == -1:
-            self.freshwater_open_difficulty = -1
-        else:
-            self.saltwater_open_difficulty = self.default_open_difficulty.default_saltwater_open_difficulty * \
-                (1 + self.saltwater_open_lands / (self.default_open_difficulty.double_parameter / self.saltwater_parameter * 100))
         self.save()
 
+#城市间道路
 class City_Road(models.Model):
     class Meta:
         verbose_name = "城与城道路"
