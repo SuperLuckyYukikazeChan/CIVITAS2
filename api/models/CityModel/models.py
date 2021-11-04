@@ -1,8 +1,10 @@
 from django.db import models
 import random
-from MaterialModel.models import Material,MaterialDetail
-from CivitasModel.models import Calendar,Terrain
+from MaterialModel.models import Material,Material_Detail
+from django.core.exceptions import ValidationError
+from CivitasModel.models import Calendar
 
+#气候
 class Climate(models.Model):
     class Meta:
         verbose_name = "气候"
@@ -29,13 +31,26 @@ class Climate(models.Model):
     def __str__(self):
         return self.name
 
+#地形
+class Terrain(models.Model):
+    class Meta:
+        verbose_name = "地形"
+        verbose_name_plural = verbose_name
+    
+    name = models.CharField("地形名",max_length=20)
+    default_open_difficulty = models.IntegerField("基准开垦难度",default=100)
+
+    def __str__(self):
+        return self.name
+
+#城市
 class City(models.Model):
     class Meta:
         verbose_name = "城市"
         verbose_name_plural = verbose_name
 
     #名字
-    name = models.CharField("城市名",max_length=20)
+    name = models.CharField("城市名",max_length=20,unique=True)
 
     #日历
     calendar = models.ForeignKey(Calendar,on_delete=models.CASCADE,verbose_name="日历")
@@ -80,9 +95,6 @@ class City(models.Model):
 
     #建立时间
     created_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return self.name
 
     #换日天气部分
     def day_change_weather(self):
@@ -328,9 +340,7 @@ class City(models.Model):
 
         #####################################################################################
         #默认肥力值变化，只有会泛滥的城市才变化
-        if self.is_flooding == False:
-            pass
-        else:
+        if self.is_flooding:
             if season == int(self.flooding_season) and day == 1:
                 self.fertility_default = random.uniform(self.flooding_fertility_default*0.9,self.flooding_fertility_default*1.1)
                 #不能超过100
@@ -352,30 +362,23 @@ class City(models.Model):
     def get_weather(self):
         pass
 
-    #保存方法重写，加入验证
-    def save(self):
+    def __str__(self):
+        return self.name
+
+    def clean(self):
         if self.precipitation == 0:
             self.is_rain = False
         else:
             self.is_rain = True
-        super().save(self)
+        if self.is_flooding and not self.flooding_fertility_default and not self.flooding_season:
+            raise ValidationError("如果会泛滥，需要指定泛滥肥力值和季节")
 
-#开垦难度参数
-class Open_Difficulty_Parameter(models.Model):
-    class Meta:
-        verbose_name = "开垦难度参数"
-        verbose_name_plural = verbose_name
-
-    #定义翻倍系数
-    double_parameter = models.IntegerField("基准难度翻倍参数",default=200)
-
-    def __str__(self):
-        return "开垦难度参数" + str(self.id)
-
-#抽象的县/郊区-地形中间表
-class CorS_To_Terrain(models.Model):
-    class Meta:
-        abstract = True
+    def save(self, *args, **kwargs):
+        try:
+            self.full_clean()
+            super().save(*args, **kwargs)
+        except ValidationError as e:
+            print("城市不合法： %s" % e.message_dict)
 
 #县-地形中间表
 class County_To_Terrain(models.Model):
@@ -423,15 +426,12 @@ class Abstract_County(models.Model):
         abstract = True
 
     #名字
-    name = models.CharField("县/郊区名",max_length=20)
+    name = models.CharField("县/郊区名",max_length=20,unique=True)
 
     #三个值：繁荣，治理，产业
     prosperity_value = models.IntegerField("繁荣值")
     governance_value = models.IntegerField("治理值")
     industrial_value = models.IntegerField("产业值")
-
-    #关联基准开垦难度参数
-    open_difficulty_parameter = models.ForeignKey(Open_Difficulty_Parameter,on_delete=models.CASCADE,verbose_name="开垦难度参数")
 
     #属于某个城市
     belong_city = models.ForeignKey(City,on_delete=models.CASCADE,verbose_name="属于城市")
@@ -452,7 +452,7 @@ class County(Abstract_County):
     terrain_parameter = models.ManyToManyField(Terrain,verbose_name="地形表",through=County_To_Terrain)
 
     #特产表
-    list_of_special_materials_county = models.ManyToManyField(MaterialDetail,verbose_name="特产表",related_name="special_materials_county",blank=True)
+    list_of_special_materials_county = models.ManyToManyField(Material_Detail,verbose_name="特产表",related_name="special_materials_county",blank=True)
 
     #更新开垦难度
     def updata_difficulty(self):

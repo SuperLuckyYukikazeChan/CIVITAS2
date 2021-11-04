@@ -1,8 +1,4 @@
 from django.contrib import admin
-from .models import *
-# Register your models here.
-class attributes(admin.ModelAdmin):
-    list_display = ('uid','energy','healthy','happy','Hunger')
-admin.site.register(usersession)
-admin.site.register(Avatar)
-admin.site.register(personal_attributes,attributes)
+from .models import User_Table
+
+admin.site.register(User_Table)

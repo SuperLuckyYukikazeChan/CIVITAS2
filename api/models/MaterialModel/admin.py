@@ -1,8 +1,8 @@
 from django.contrib import admin
-from .models import Material,Recipe,UserMaterial,MaterialDetail,Input_Recipe_Material,Output_Recipe_Material
-# Register your models here.
-class ChoiceInline(admin.TabularInline):#物资表添加
-    model = MaterialDetail
+from .models import *
+
+class ChoiceFor_Material_Detail(admin.TabularInline):
+    model = Material_Detail
     extra = 3
 
 class ChoiceForRecipe_input(admin.TabularInline):
@@ -13,17 +13,13 @@ class ChoiceForRecipe_output(admin.TabularInline):
     model = Output_Recipe_Material
     extra = 1
 
-class usermateriallist(admin.ModelAdmin):
-    list_display = ('user','material_detail','count')
-
 class recipelist(admin.ModelAdmin):
     list_display = ("id","__str__")
     inlines = [ChoiceForRecipe_input,ChoiceForRecipe_output]
 
 class materiallist(admin.ModelAdmin):
-    list_display = ('material_id','name')
-    inlines = [ChoiceInline]
+    list_display = ('id','name')
+    inlines = [ChoiceFor_Material_Detail]
 
 admin.site.register(Material,materiallist)
 admin.site.register(Recipe,recipelist)
-admin.site.register(UserMaterial,usermateriallist)

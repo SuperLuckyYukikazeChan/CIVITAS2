@@ -21,14 +21,3 @@ class Calendar(models.Model):
 
     def __str__(self):
         return "日历" + str(self.id)
-
-class Terrain(models.Model):
-    class Meta:
-        verbose_name = "地形"
-        verbose_name_plural = verbose_name
-    
-    name = models.CharField("地形名",max_length=20)
-    default_open_difficulty = models.IntegerField("基准开垦难度",default=100)
-
-    def __str__(self):
-        return self.name

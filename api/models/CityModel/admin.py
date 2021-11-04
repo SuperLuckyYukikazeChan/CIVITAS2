@@ -17,9 +17,9 @@ class Suburb_Admin(admin.ModelAdmin):
     list_display = ("name","belong_city")
     inlines = [ChoiceFor_Suburb]
 
+admin.site.register(Terrain)
 admin.site.register(City)
 admin.site.register(Climate)
-admin.site.register(Open_Difficulty_Parameter)
 admin.site.register(County,County_Admin)
 admin.site.register(Suburb,Suburb_Admin)
 admin.site.register(City_Road)
